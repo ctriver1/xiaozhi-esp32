@@ -26,6 +26,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "power_manager.h"
+#include "mcp_server.h"
 
 #define TAG "Spotpear_ESP32_S3_1_28_BOX"
 
@@ -142,6 +143,23 @@ private:
     PowerSaveTimer* power_save_timer_ = nullptr;
     esp_lcd_panel_handle_t panel_ = nullptr;
     PowerManager* power_manager_ = nullptr;
+
+    // 注册MCP工具，让服务器可以在有定时器/闹钟/提醒待处理时让设备保持唤醒状态，
+    // 避免设备进入深度睡眠而错过提醒
+    void InitializeTools() {
+        McpServer::GetInstance().AddTool(
+            "self.device.set_keep_awake",
+            "Keep the device awake (prevent it from entering power-save / deep sleep) while "
+            "a timer, alarm or reminder is pending, so it does not miss it. Call with "
+            "`enabled=true` when you schedule a timer/alarm/reminder, and `enabled=false` once "
+            "it has fired or been cancelled and there is nothing else pending.",
+            PropertyList({Property("enabled", kPropertyTypeBoolean)}),
+            [](const PropertyList& properties) -> ReturnValue {
+                bool enabled = properties["enabled"].value<bool>();
+                Application::GetInstance().SetKeepAwake(enabled);
+                return true;
+            });
+    }
 
     void InitializePowerSaveTimer() {
         rtc_gpio_init(GPIO_NUM_3);
@@ -401,6 +419,7 @@ public:
         // 显示和背光可用后再初始化省电逻辑，避免空指针
         InitializePowerSaveTimer();
         InitializePowerManager();
+        InitializeTools();
     }
 
     ~Spotpear_ESP32_S3_1_28_BOX() {
