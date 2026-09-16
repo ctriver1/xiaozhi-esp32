@@ -112,6 +112,7 @@ public:
     void WakeWordInvoke(const std::string& wake_word);
     bool UpgradeFirmware(const std::string& url, const std::string& version = "");
     bool CanEnterSleepMode();
+    void SetKeepAwake(bool keep_awake);
     void SendMcpMessage(const std::string& payload);
     void RegisterMcpBroadcastCallback(std::function<void(const std::string&)> callback);
     void SetAecMode(AecMode mode);
@@ -148,6 +149,9 @@ private:
 
     bool has_server_time_ = false;
     bool aborted_ = false;
+    // Set by the server (via MCP tool) while a timer/alarm/reminder is pending,
+    // so the device does not enter power-save / deep sleep and misses it.
+    bool keep_awake_requested_ = false;
     bool assets_version_checked_ = false;
     bool play_popup_on_listening_ = false;  // Flag to play popup sound after state changes to listening
     bool pending_listening_start_ = false;  // Waiting for playback to drain before starting listening (auto mode)
