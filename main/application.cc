@@ -1298,6 +1298,10 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
 }
 
 bool Application::CanEnterSleepMode() {
+    if (keep_awake_requested_) {
+        return false;
+    }
+
     if (GetDeviceState() != kDeviceStateIdle) {
         return false;
     }
@@ -1310,8 +1314,17 @@ bool Application::CanEnterSleepMode() {
         return false;
     }
 
-    // Now it is safe to enter sleep mode
+        // Now it is safe to enter sleep mode
     return true;
+}
+
+void Application::SetKeepAwake(bool keep_awake) {
+    keep_awake_requested_ = keep_awake;
+    ESP_LOGI(TAG, "Keep awake requested: %d", keep_awake);
+    // No extra bookkeeping needed here: while keep_awake_requested_ is true,
+    // CanEnterSleepMode() returns false, so the board's PowerSaveTimer keeps
+    // resetting its own idle counter to 0 every tick. Once we clear the flag,
+    // it naturally starts counting a fresh idle window from the next tick.
 }
 
 void Application::RegisterMcpBroadcastCallback(std::function<void(const std::string&)> callback) {
